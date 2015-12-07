@@ -1,0 +1,91 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Scanner;
+
+/** 
+ * This program executes an SQL statement in 2 ways, one of which allows for SQL injection code.
+ * This program assumes you have the "EMP" table and the rows and columns are filled in properly. 
+ * 
+ * @author Alex (Sasha) Kozlov
+ *
+ */
+public class Injection_Example {
+	private static PreparedStatement authors;//declaring Prepared Statement in a secure manner.
+	public static void main(String[] args) throws SQLException {
+		 Scanner reader = new Scanner(System.in);  // Reading from System.in
+		 System.out.println("This is a program to demo secure vs unsecure SQL statements. Try typing in:  CLERK' OR JOB = 'MANAGER"); 
+		 System.out.println("Enter a job title: ");
+		 String input = reader.nextLine();
+		 Statement stmt = null;//creating an SQL statement to pass vulnerable query into
+		
+		  Connection connection = DriverManager.getConnection(
+		          "jdbc:oracle:thin:@localhost:1521:" + "orcl" , "user", "pass");//Initializing a DB connection to an Oracle DB. 
+
+		       authors = connection.prepareStatement("select * from emp where job = ?"); //prepared statement, this is a more secure statement.   
+		       authors.setString(1, input);
+		       String query = "select * from emp where job  = '" + input + "'";//Unsecure statement, this is vulnerable since the String "input" is not contained properly, which allows for potential injection. 
+		       
+		    stmt = connection.createStatement();   
+		       
+		       //setting a query as a string
+		     // use try-with-resources to connect to and query the database
+		     try (  
+		       
+		    	ResultSet resultSet2 = stmt.executeQuery(query);	 
+		        ResultSet resultSet = authors.executeQuery())
+		        //executing the queries above.
+		        
+		        
+		        {
+		        	
+		        //getting MetaData for first query results-the unsecure one.
+		    	 ResultSetMetaData mD = resultSet2.getMetaData();
+		        int nOfColumns = mD.getColumnCount();
+		        System.out.println("Results from statement using unsafe injection String:");
+
+		        // display the names of the columns in the ResultSet
+		        for (int i = 1; i <= nOfColumns; i++)
+		           System.out.printf("%-8s\t", mD.getColumnName(i));
+		        System.out.println();
+		     // display query results
+		        while (resultSet2.next()) //while there are results to display
+		        {
+		           for (int i = 1; i <= nOfColumns; i++)
+		              System.out.printf("%-8s\t", resultSet2.getObject(i));
+		           System.out.println();
+		        }//output results
+		        
+		        
+		        
+		        
+		        
+		        // getting MetaData for Prepared Statement query
+		        ResultSetMetaData metaData = resultSet.getMetaData();
+		        int numberOfColumns = metaData.getColumnCount();     
+		        //getting number of columns for loop output
+		       
+		        
+		        System.out.println("Retrieving contents using PREPARED STATEMENTS(If you don't see anything in this table but you got a result from the first query, the program has worked):");
+		        
+
+		        // display the names of the columns in the ResultSet
+		        for (int i = 1; i <= numberOfColumns; i++)
+		           System.out.printf("%-8s\t", metaData.getColumnName(i));
+		        System.out.println();
+		     // display query results
+		        while (resultSet.next()) //while there are results to display
+		        {
+		           for (int i = 1; i <= numberOfColumns; i++)
+		              System.out.printf("%-8s\t", resultSet.getObject(i));
+		           System.out.println();
+		        }//output results
+		     }
+		     }//end main
+
+	}//end program
+
